@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 知識小測驗</title>
+    <style>
+        /* 整體頁面樣式 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* 測驗容器 */
+        #quiz-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        /* 標題 */
+        h1 {
+            color: #1c1e21;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* 問題文字 */
+        #question-text {
+            font-size: 1.25rem;
+            color: #333;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        /* 選項按鈕容器 */
+        #answer-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 選項按鈕 */
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1rem;
+            text-align: left;
+            background-color: #f0f2f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background-color: #e4e6eb;
+            border-color: #ccc;
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+
+        /* 正確答案的樣式 */
+        .option-btn.correct {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+            font-weight: bold;
+        }
+
+        /* 錯誤答案的樣式 */
+        .option-btn.incorrect {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        
+        /* 回饋區塊 (包含提示與解釋) */
+        #feedback-container {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+        
+        /* 提示 */
+        #hint-container {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        #hint-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        #hint-btn:hover {
+            background-color: #0056b3;
+        }
+        
+        #hint-text {
+            color: #6c757d;
+            display: none; /* 預設隱藏 */
+            margin: 0;
+        }
+
+        /* 解釋文字 */
+        #rationale-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #495057;
+            display: none; /* 預設隱藏 */
+        }
+        
+        /* 控制按鈕區 */
+        #controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* 下一題按鈕 */
+        #next-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none; /* 預設隱藏 */
+        }
+
+        #next-btn:hover {
+            background-color: #218838;
+        }
+        
+        /* 最終結果畫面 */
+        #results-container {
+            text-align: center;
+        }
+        
+        #results-container h2 {
+            color: #007bff;
+            font-size: 1.8rem;
+        }
+        
+        #results-container p {
+            font-size: 1.2rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="quiz-container">
+        <h1>AI 知識小測驗</h1>
+        <div id="quiz-content">
+            <div id="question-header">
+                <p id="question-counter"></p>
+                <h2 id="question-text"></h2>
+            </div>
+            <div id="answer-options"></div>
+            <div id="feedback-container">
+                <div id="hint-container">
+                    <button id="hint-btn">💡 顯示提示</button>
+                    <p id="hint-text"></p>
+                </div>
+                <p id="rationale-text"></p>
+            </div>
+            <div id="controls">
+                <button id="next-btn">下一題</button>
+            </div>
+        </div>
+        <div id="results-container" style="display: none;">
+            <h2>測驗完成！</h2>
+            <p id="score-text"></p>
+            <button id="restart-btn" onclick="location.reload()">重新測驗</button>
+        </div>
+    </div>
+
+    <script>
+        // 將您的 JSON 資料直接放在這裡
+        const quizData = {
+            "questions": [
+                {
+                "question": "目前市面上絕大多數的 AI，包括智慧音箱、人臉辨識系統和棋藝 AI (如 AlphaGo)，都屬於以下哪一種類型？",
+                "answerOptions": [
+                    {
+                    "text": "通用人工智慧 (AGI)",
+                    "rationale": "通用人工智慧指的是擁有與人類同等、全面認知能力的 AI，目前這仍是科幻與未來研究的目標。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "超級人工智慧 (ASI)",
+                    "rationale": "超級人工智慧指的是在所有領域都遠超人類智慧的 AI，這是 AI 發展的理論性終極階段。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "弱人工智慧或狹義人工智慧 (Narrow AI)",
+                    "rationale": "這準確地描述了目前的 AI 技術現狀。這些 AI 被設計用來執行單一或非常有限的特定任務，並在該領域表現出色。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "反應式機器 (Reactive Machines)",
+                    "rationale": "反應式機器是 AI 的一個基本類型，它沒有記憶能力，只能對當前刺激做出反應。雖然許多狹義 AI 是反應式的，但「狹義 AI」這個詞更能涵蓋它們的整體分類。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "思考一下，你手機上的語音助理可以幫你設定鬧鐘，但它能寫一首交響樂嗎？"
+                },
+                {
+                "question": "你給 AI 一大堆沒有任何標籤的顧客購買紀錄，並要求它「從中找出顧客的自然分群」，例如「省錢一族」或「高消費科技迷」。這屬於哪一種機器學習方法？",
+                "answerOptions": [
+                    {
+                    "text": "監督式學習 (Supervised Learning)",
+                    "rationale": "監督式學習需要使用已經標記好「正確答案」的資料來進行訓練，例如標有「垃圾郵件」的電子郵件。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "非監督式學習 (Unsupervised Learning)",
+                    "rationale": "完全正確！非監督式學習的核心就是在未標記的資料中自行尋找隱藏的結構、模式或分群。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "強化學習 (Reinforcement Learning)",
+                    "rationale": "強化學習是讓 AI 透過「嘗試與犯錯」來學習，並根據「獎勵」或「懲罰」來調整行為，常用於遊戲或機器人控制。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "半監督式學習 (Semi-Supervised Learning)",
+                    "rationale": "半監督式學習介於兩者之間，它使用一小部分有標籤的資料和大量無標籤的資料進行學習。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "關鍵在於，你事先有沒有給 AI 一個明確的「標準答案」讓它學習？"
+                },
+                {
+                "question": "在 AI 生成內容的領域，當模型產生了看似真實但實際上完全錯誤、或與事實不符的資訊時，這個現象被稱為什麼？",
+                "answerOptions": [
+                    {
+                    "text": "過擬合 (Overfitting)",
+                    "rationale": "過擬合是指模型過度學習了訓練資料的細節和噪聲，導致它在新的、未見過的資料上表現不佳，而不是指產生不實資訊。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "模型漂移 (Model Drift)",
+                    "rationale": "模型漂移是指因為真實世界的數據分佈隨時間改變，導致模型的預測能力下降的現象。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "幻覺 (Hallucination)",
+                    "rationale": "這正是描述這個問題的專有名詞。當模型無法找到確切答案或被誤導時，它可能會「編造」出聽起來頭頭是道但不真實的內容。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "梯度消失 (Vanishing Gradient)",
+                    "rationale": "梯度消失是深度學習訓練過程中的一個技術性問題，它會導致神經網路底層的權重更新緩慢或停止，與生成不實內容無直接關係。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "這個詞彙很形象地描述了 AI「無中生有」的行為。"
+                },
+                {
+                "question": "在神經網路中，什麼是「激勵函數 (Activation Function)」的主要作用？",
+                "answerOptions": [
+                    {
+                    "text": "將資料輸入到神經元中。",
+                    "rationale": "資料的輸入是神經元接收訊號的過程，但激勵函數是在接收之後才發揮作用。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "決定一個神經元在接收到一組輸入後，是否應該被「啟動」並將訊號傳遞下去。",
+                    "rationale": "完全正確。它就像一個開關，為神經網路引入了非線性因素，使得模型能夠學習更複雜的模式。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "加快模型的訓練速度。",
+                    "rationale": "雖然某些激勵函數有助於解決訓練速度問題（如梯度消失），但它最核心的作用是決策與引入非線性。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "儲存模型的長期記憶。",
+                    "rationale": "模型的記憶儲存在整個網路的「權重 (weights)」中，而不是單一的激勵函數。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "把它想像成生物神經元的「觸發開關」。"
+                },
+                {
+                "question": "如果一個 AI 模型在訓練資料上表現完美（準確率 99%），但在真實世界的測試資料上表現很差（準確率 50%），這個問題最可能稱為什麼？",
+                "answerOptions": [
+                    {
+                    "text": "欠擬合 (Underfitting)",
+                    "rationale": "欠擬合是指模型過於簡單，連訓練資料的規律都沒學好，所以在兩者上表現都會很差。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "數據洩漏 (Data Leakage)",
+                    "rationale": "數據洩漏是指測試資料的資訊意外地「洩漏」到了訓練過程中，這通常會讓模型在測試集上表現得異常好。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "過擬合 (Overfitting)",
+                    "rationale": "這正是過擬合的典型定義。模型過度地「死記硬背」了訓練資料的特徵，失去了對新資料的泛化能力。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "標籤雜訊 (Label Noise)",
+                    "rationale": "標籤雜訊是指訓練資料中的標籤有錯誤，這會影響模型學習，但不直接對應訓練集和測試集之間的巨大表現差異。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "就像一個學生只會死背考古題，一遇到新題目就完全不會了。"
+                },
+                {
+                "question": "在 AI 倫理的討論中，「偏見 (Bias)」問題通常源自於什麼？",
+                "answerOptions": [
+                    {
+                    "text": "程式設計師在程式碼中寫入了惡意的歧視性規則。",
+                    "rationale": "雖然這理論上可能發生，但現實中更常見的偏見來源並非開發者的主觀惡意，而是一個更根本的問題。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "AI 模型在學習過程中自發地產生了歧視性思維。",
+                    "rationale": "AI 本身沒有思維或意圖，它的行為是其所學資料的數學反映。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "用來訓練模型的資料本身就存在著現實世界的不平衡與偏見。",
+                    "rationale": "這是 AI 偏見最主要、也最難解決的根源。如果訓練資料反映了社會的偏見（例如，某職業的圖片大多是男性），模型就會學習並放大這種偏見。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "電腦硬體的計算錯誤導致了隨機的判斷失誤。",
+                    "rationale": "硬體錯誤會導致計算失敗，但不會產生系統性的、針對特定群體的偏見。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "AI 的世界觀是從哪裡學來的？思考一下「垃圾進，垃圾出」的原則。"
+                },
+                {
+                "question": "艾倫·圖靈提出的「圖靈測試」主要是為了測試機器的什麼能力？",
+                "answerOptions": [
+                    {
+                    "text": "計算數學難題的能力。",
+                    "rationale": "機器在計算能力上很早就超越了人類，圖靈測試關注的是一個更「人性化」的層面。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "表現出與人類無法區分的對話行為的能力。",
+                    "rationale": "完全正確。圖靈測試的核心在於，如果一個人類評審無法穩定地分辨出與之對話的是人還是機器，那麼這台機器就可以被認為具有「智慧」。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "辨識圖片和聲音的能力。",
+                    "rationale": "這屬於特定的 AI 任務（電腦視覺和語音辨識），而圖靈測試旨在評估更廣義的、類似人類的智慧表現。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "自我學習和改進的能力。",
+                    "rationale": "雖然這是智慧的一個重要特徵，但圖靈測試本身並不直接測量學習過程，而是測量其最終表現出的行為。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "這個測試也被稱為「模仿遊戲 (The Imitation Game)」。"
+                },
+                {
+                "question": "將「貓」這個詞轉換成一個像 `[0.1, -0.7, 0.4, ...]` 這樣的數字向量，以便 AI 進行數學運算。這個過程或結果稱為什麼？",
+                "answerOptions": [
+                    {
+                    "text": "加密 (Encryption)",
+                    "rationale": "加密是為了保護資訊安全，將資訊變得不可讀，其目的與讓機器理解語意不同。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "壓縮 (Compression)",
+                    "rationale": "壓縮是為了減少檔案大小以便儲存或傳輸，而不是為了語意表達。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "嵌入 (Embedding)",
+                    "rationale": "這正是這個過程的專有名詞。「詞嵌入」將文字等物件轉換到一個向量空間中，使得語意上相似的物件在空間中的距離也更近。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "序列化 (Serialization)",
+                    "rationale": "序列化是將資料結構或物件轉換成可以儲存或傳輸的格式，重點在於格式轉換，而非語意表示。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "我們要把一個概念「嵌入」到一個數學空間中。"
+                },
+                {
+                "question": "Google 在 2017 年發表的論文中，提出了一種名為「Transformer」的革命性架構，其核心機制是什麼，徹底改變了自然語言處理領域？",
+                "answerOptions": [
+                    {
+                    "text": "卷積神經網路 (CNN)",
+                    "rationale": "CNN 在處理圖像方面非常強大，它透過滑動窗口來捕捉局部特徵，但並非 Transformer 的核心。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "循環神經網路 (RNN)",
+                    "rationale": "在 Transformer 出現之前，RNN 是處理序列資料的主流方法，但它有著難以處理長距離依賴的問題。Transformer 正是為了解決這個問題而被提出的。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "注意力機制 (Attention Mechanism)",
+                    "rationale": "完全正確！「注意力機制」允許模型在處理一個詞時，直接「關注」句子中所有其他與之相關的詞，無論距離多遠，這極大地提升了對上下文的理解能力。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "生成對抗網路 (GAN)",
+                    "rationale": "GAN 是由一個生成器和一個判別器組成，透過相互博弈來生成逼真數據的框架，與 Transformer 的內部架構不同。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "這篇論文的標題是「Attention Is All You Need」。"
+                },
+                {
+                "question": "一個模型的任務是「分類」，例如判斷一封郵件是「垃圾郵件」還是「非垃圾郵件」。另一個模型的任務是「生成」，例如根據提示寫一封全新的郵件。這分別對應了哪兩種類型的模型？",
+                "answerOptions": [
+                    {
+                    "text": "監督式模型 vs. 非監督式模型",
+                    "rationale": "這描述的是學習方式（是否有標籤），而不是模型的根本目標（是分類還是生成）。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "判別模型 (Discriminative) vs. 生成模型 (Generative)",
+                    "rationale": "這精確地描述了兩者的區別。判別模型學習決策邊界以進行分類，而生成模型學習數據的潛在分佈以生成新樣本。",
+                    "isCorrect": true
+                    },
+                    {
+                    "text": "線性模型 vs. 非線性模型",
+                    "rationale": "這描述的是模型的數學複雜性，而不是它們要完成的任務類型。",
+                    "isCorrect": false
+                    },
+                    {
+                    "text": "深度學習模型 vs. 傳統機器學習模型",
+                    "rationale": "這描述的是模型的架構（是否有深層神經網路），而不是它們的核心任務目標。",
+                    "isCorrect": false
+                    }
+                ],
+                "hint": "思考一下它們的名字：一個是做「判別」，另一個是做「生成」。"
+                }
+            ]
+            };
+
+        // 獲取 HTML 元素
+        const quizContent = document.getElementById('quiz-content');
+        const questionText = document.getElementById('question-text');
+        const answerOptions = document.getElementById('answer-options');
+        const nextBtn = document.getElementById('next-btn');
+        const hintBtn = document.getElementById('hint-btn');
+        const hintText = document.getElementById('hint-text');
+        const rationaleText = document.getElementById('rationale-text');
+        const questionCounter = document.getElementById('question-counter');
+        const resultsContainer = document.getElementById('results-container');
+        const scoreText = document.getElementById('score-text');
+
+        // 測驗狀態變數
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        // 開始測驗
+        startQuiz();
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            quizContent.style.display = 'block';
+            resultsContainer.style.display = 'none';
+            showQuestion();
+        }
+
+        function showQuestion() {
+            resetState(); // 重置狀態
+            const currentQuestion = quizData.questions[currentQuestionIndex];
+            
+            questionCounter.innerText = `問題 ${currentQuestionIndex + 1} / ${quizData.questions.length}`;
+            questionText.innerText = currentQuestion.question;
+            hintText.innerText = currentQuestion.hint;
+
+            // 建立選項按鈕
+            currentQuestion.answerOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.innerText = option.text;
+                button.classList.add('option-btn');
+                button.dataset.correct = option.isCorrect;
+                button.dataset.rationale = option.rationale;
+                button.addEventListener('click', selectAnswer);
+                answerOptions.appendChild(button);
+            });
+        }
+        
+        function resetState() {
+            nextBtn.style.display = 'none';
+            hintBtn.style.display = 'inline-block';
+            hintText.style.display = 'none';
+            rationaleText.style.display = 'none';
+            while (answerOptions.firstChild) {
+                answerOptions.removeChild(answerOptions.firstChild);
+            }
+        }
+        
+        function selectAnswer(e) {
+            const selectedBtn = e.target;
+            const isCorrect = selectedBtn.dataset.correct === 'true';
+            
+            if (isCorrect) {
+                score++;
+                selectedBtn.classList.add('correct');
+            } else {
+                selectedBtn.classList.add('incorrect');
+            }
+            
+            // 顯示解釋
+            rationaleText.innerText = selectedBtn.dataset.rationale;
+            rationaleText.style.display = 'block';
+            
+            // 顯示正確答案並禁用所有按鈕
+            Array.from(answerOptions.children).forEach(button => {
+                if (button.dataset.correct === 'true') {
+                    button.classList.add('correct');
+                }
+                button.disabled = true;
+            });
+            
+            // 顯示下一題按鈕
+            if (quizData.questions.length > currentQuestionIndex + 1) {
+                nextBtn.style.display = 'block';
+            } else {
+                // 顯示最終結果
+                showResults();
+            }
+            
+            // 隱藏提示按鈕
+            hintBtn.style.display = 'none';
+        }
+        
+        function showResults() {
+            quizContent.style.display = 'none';
+            resultsContainer.style.display = 'block';
+            scoreText.innerText = `您答對了 ${score} / ${quizData.questions.length} 題！`;
+        }
+
+        // 註冊事件監聽器
+        hintBtn.addEventListener('click', () => {
+            hintText.style.display = 'inline';
+            hintBtn.style.display = 'none';
+        });
+
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            showQuestion();
+        });
+
+    </script>
+</body>
+</html>
